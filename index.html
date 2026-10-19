@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amrit Academy - Online Test Series (10,000 Questions)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-indigo-950 to-blue-950 text-slate-100 font-sans min-h-screen flex flex-col justify-between">
+
+    <!-- Header / Navbar with Professional Logo & Colorful Gradient Background -->
+    <header class="bg-gradient-to-r from-indigo-900 via-blue-900 to-indigo-800 text-white shadow-xl border-b-4 border-yellow-400">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3 group cursor-pointer" onclick="resetToHome()">
+                <!-- Custom Attractive Logo Icon -->
+                <div class="w-12 h-12 bg-gradient-to-tr from-yellow-400 to-amber-500 rounded-2xl flex items-center justify-center shadow-lg transform group-hover:scale-105 transition">
+                    <i class="fa-solid fa-graduation-cap text-2xl text-indigo-950"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-extrabold tracking-wider bg-gradient-to-r from-white via-yellow-200 to-yellow-400 bg-clip-text text-transparent">AMRIT ACADEMY</h1>
+                    <p class="text-[10px] text-yellow-300 tracking-widest uppercase font-semibold">Bihar Police & SI Portal</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                <button onclick="toggleLanguage()" id="lang-btn" class="text-xs bg-white/10 hover:bg-white/20 px-3.5 py-2 rounded-xl border border-white/20 font-medium transition shadow-sm">
+                    🌐 हिंदी में बदलें
+                </button>
+                <div id="user-nav-info" class="hidden flex items-center space-x-3">
+                    <span id="nav-username" class="text-xs bg-indigo-900/80 px-3 py-2 rounded-xl border border-indigo-400/40 font-medium text-yellow-200">Hello, </span>
+                    <button onclick="logout()" class="text-xs bg-red-600 hover:bg-red-700 px-3.5 py-2 rounded-xl transition font-medium shadow-sm"><i class="fa-solid fa-right-from-bracket mr-1"></i><span>Logout</span></button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-6xl mx-auto px-4 py-6 flex-grow w-full">
+        
+        <!-- Auth View -->
+        <div id="auth-view" class="max-w-md mx-auto bg-white/95 backdrop-blur text-slate-800 p-8 rounded-2xl shadow-2xl border border-indigo-200">
+            <div class="text-center mb-6">
+                <div class="w-14 h-14 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto text-2xl mb-3 shadow-inner">
+                    <i class="fa-solid fa-user-lock"></i>
+                </div>
+                <h2 id="auth-title" class="text-2xl font-bold text-slate-900">Student Login</h2>
+                <p id="auth-subtitle" class="text-slate-500 text-xs mt-1">Log in to participate in the test series</p>
+            </div>
+
+            <div id="auth-alert" class="hidden mb-4 p-3 rounded-xl text-xs font-medium text-center"></div>
+
+            <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Email ID</label>
+                    <input type="email" id="login-email" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-600" placeholder="student@gmail.com">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Password</label>
+                    <div class="relative">
+                        <input type="password" id="login-password" required class="w-full px-4 py-2.5 pr-10 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-600" placeholder="••••••••">
+                        <button type="button" onclick="togglePasswordVisibility('login-password', 'eye-login')" class="absolute right-3 top-3 text-slate-400 hover:text-slate-600 text-sm">
+                            <i id="eye-login" class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex justify-between items-center text-xs">
+                    <button type="button" onclick="showStaticPage('terms')" class="text-indigo-600 hover:underline font-medium">Terms & Conditions</button>
+                    <button type="button" onclick="switchAuthMode('forgot')" class="text-indigo-600 hover:underline font-medium">Forgot Password?</button>
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-indigo-700 transition shadow-sm">Login</button>
+                <div class="text-center pt-2">
+                    <span class="text-xs text-slate-500">Don't have an account? </span>
+                    <button type="button" onclick="switchAuthMode('register')" class="text-xs text-indigo-600 font-bold hover:underline">Register</button>
+                </div>
+            </form>
+
+            <form id="register-form" onsubmit="handleRegister(event)" class="space-y-4 hidden">
+                <div class="flex items-center mb-2">
+                    <button type="button" onclick="switchAuthMode('login')" class="text-xs bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg font-medium transition text-slate-700"><i class="fa-solid fa-arrow-left mr-1"></i> Back</button>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Full Name</label>
+                    <input type="text" id="reg-name" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-600" placeholder="Ayush Kumar">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Email ID</label>
+                    <input type="email" id="reg-email" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-600" placeholder="student@gmail.com">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Create Password</label>
+                    <div class="relative">
+                        <input type="password" id="reg-password" required class="w-full px-4 py-2.5 pr-10 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-600" placeholder="••••••••">
+                        <button type="button" onclick="togglePasswordVisibility('reg-password', 'eye-reg')" class="absolute right-3 top-3 text-slate-400 hover:text-slate-600 text-sm">
+                            <i id="eye-reg" class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-indigo-700 transition shadow-sm">Register</button>
+            </form>
+
+            <form id="forgot-form" onsubmit="handleForgotPassword(event)" class="space-y-4 hidden">
+                <div class="flex items-center mb-2">
+                    <button type="button" onclick="switchAuthMode('login')" class="text-xs bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg font-medium transition text-slate-700"><i class="fa-solid fa-arrow-left mr-1"></i> Back</button>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Registered Email ID</label>
+                    <input type="email" id="forgot-email" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-600" placeholder="student@gmail.com">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">New Password</label>
+                    <div class="relative">
+                        <input type="password" id="forgot-password" required class="w-full px-4 py-2.5 pr-10 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-600" placeholder="••••••••">
+                        <button type="button" onclick="togglePasswordVisibility('forgot-password', 'eye-forgot')" class="absolute right-3 top-3 text-slate-400 hover:text-slate-600 text-sm">
+                            <i id="eye-forgot" class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-indigo-700 transition shadow-sm">Reset Password</button>
+            </form>
+        </div>
+
+        <!-- Home / Category Selection View -->
+        <div id="home-view" class="hidden max-w-3xl mx-auto space-y-6">
+            <div class="bg-white/95 backdrop-blur text-slate-800 p-6 rounded-2xl shadow-xl border border-indigo-200 text-center space-y-3">
+                <h2 class="text-2xl font-bold text-slate-900">Online Mock Test Series</h2>
+                <p class="text-slate-600 text-sm">अपनी परीक्षा श्रेणी चुनें और अपनी तैयारी को बेहतर बनाएं।</p>
+                
+                <div class="pt-2">
+                    <button onclick="showPaymentPopup()" class="bg-gradient-to-r from-amber-500 to-yellow-500 text-indigo-950 font-bold px-6 py-2.5 rounded-xl text-xs shadow-md hover:scale-105 transition">
+                        <i class="fa-solid fa-crown mr-1"></i> Unlock All Tests @ ₹99
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <button onclick="openCategory('police')" class="p-5 bg-white/90 backdrop-blur border border-indigo-100 rounded-xl shadow-md hover:border-indigo-500 hover:bg-white transition text-left group">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="p-3 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition">
+                            <i class="fa-solid fa-shield-halved text-lg"></i>
+                        </span>
+                        <span class="text-xs font-medium text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">25 Sets</span>
+                    </div>
+                    <h3 class="font-bold text-lg text-slate-900">बिहार पुलिस कांस्टेबल</h3>
+                    <p class="text-xs text-slate-500 mt-1">25 टेस्ट सेट (प्रत्येक सेट में 100 प्रश्न)</p>
+                </button>
+
+                <button onclick="openCategory('daroga')" class="p-5 bg-white/90 backdrop-blur border border-indigo-100 rounded-xl shadow-md hover:border-indigo-500 hover:bg-white transition text-left group">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="p-3 bg-purple-50 text-purple-600 rounded-lg group-hover:bg-purple-600 group-hover:text-white transition">
+                            <i class="fa-solid fa-landmark text-lg"></i>
+                        </span>
+                        <span class="text-xs font-medium text-purple-600 bg-purple-50 px-2.5 py-1 rounded-full">25 Sets</span>
+                    </div>
+                    <h3 class="font-bold text-lg text-slate-900">बिहार दरोगा (SI)</h3>
+                    <p class="text-xs text-slate-500 mt-1">25 टेस्ट सेट (प्रत्येक सेट में 100 प्रश्न)</p>
+                </button>
+
+                <button onclick="openCategory('math')" class="p-5 bg-white/90 backdrop-blur border border-indigo-100 rounded-xl shadow-md hover:border-indigo-500 hover:bg-white transition text-left group">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="p-3 bg-emerald-50 text-emerald-600 rounded-lg group-hover:bg-emerald-600 group-hover:text-white transition">
+                            <i class="fa-solid fa-square-root-variable text-lg"></i>
+                        </span>
+                        <span class="text-xs font-medium text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">25 Sets</span>
+                    </div>
+                    <h3 class="font-bold text-lg text-slate-900">गणित (Maths)</h3>
+                    <p class="text-xs text-slate-500 mt-1">25 टेस्ट सेट (प्रत्येक सेट में 100 प्रश्न)</p>
+                </button>
+
+                <button onclick="openCategory('reasoning')" class="p-5 bg-white/90 backdrop-blur border border-indigo-100 rounded-xl shadow-md hover:border-indigo-500 hover:bg-white transition text-left group">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="p-3 bg-amber-50 text-amber-600 rounded-lg group-hover:bg-amber-600 group-hover:text-white transition">
+                            <i class="fa-solid fa-brain text-lg"></i>
+                        </span>
+                        <span class="text-xs font-medium text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">25 Sets</span>
+                    </div>
+                    <h3 class="font-bold text-lg text-slate-900">तार्किक योग्यता (Reasoning)</h3>
+                    <p class="text-xs text-slate-500 mt-1">25 टेस्ट सेट (प्रत्येक सेट में 100 प्रश्न)</p>
+                </button>
+            </div>
+        </div>
+
+        <!-- Set Selection View -->
+        <div id="sets-view" class="hidden max-w-3xl mx-auto space-y-6">
+            <div class="flex justify-between items-center bg-white/95 backdrop-blur text-slate-800 p-4 rounded-2xl shadow-md border border-indigo-200">
+                <button onclick="showHomeView(activeUsername)" class="text-xs bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-xl font-medium transition text-slate-700"><i class="fa-solid fa-arrow-left mr-1"></i> वापस जाएं</button>
+                <h2 id="sets-title" class="text-lg font-bold text-slate-900">टेस्ट सेट चुनें (Set 1 से 25)</h2>
+            </div>
+            <div id="sets-grid" class="grid grid-cols-5 gap-3"></div>
+        </div>
+
+        <!-- Quiz View with 1-100 Side Navigation Palette & 60 Min Timer -->
+        <div id="quiz-view" class="hidden grid grid-cols-1 md:grid-cols-4 gap-6">
+            <!-- Main Question Area (3 Columns) -->
+            <div class="md:col-span-3 bg-white/95 backdrop-blur text-slate-800 p-6 rounded-2xl shadow-xl border border-indigo-200 space-y-6">
+                <div class="flex justify-between items-center border-b border-slate-100 pb-4">
+                    <div>
+                        <span id="quiz-category-badge" class="text-xs font-semibold px-3 py-1 rounded-full bg-indigo-50 text-indigo-600">Category</span>
+                        <h2 id="question-count" class="text-sm font-medium text-slate-500 mt-1">Question 1 / 100</h2>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <span id="timer-display" class="text-xs font-bold bg-red-50 text-red-600 px-3 py-1.5 rounded-xl border border-red-200"><i class="fa-solid fa-clock mr-1"></i> 60:00</span>
+                        <button onclick="exitQuiz()" class="text-xs text-red-600 hover:underline font-medium"><i class="fa-solid fa-xmark mr-1"></i> टेस्ट छोड़ें</button>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 id="question-text" class="text-lg font-semibold text-slate-900 mb-4">Question will appear here...</h3>
+                    <div id="options-container" class="space-y-3"></div>
+                </div>
+
+                <div class="flex flex-wrap gap-3 pt-4 border-t border-slate-100 justify-between items-center">
+                    <button onclick="markForReview()" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl text-xs font-medium transition shadow-sm"><i class="fa-solid fa-bookmark mr-1"></i> Mark as Review</button>
+                    <div class="space-x-2">
+                        <button onclick="prevQuestion()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-xl text-xs font-medium transition">पिछला</button>
+                        <button onclick="nextQuestion()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-xl text-xs font-medium transition">अगला</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Side 1-100 Question Palette (1 Column) -->
+            <div class="bg-white/95 backdrop-blur text-slate-800 p-4 rounded-2xl shadow-xl border border-indigo-200 space-y-4 flex flex-col justify-between">
+                <div>
+                    <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wide mb-3 border-b pb-2">प्रश्न पट्टिका (Palette)</h3>
+                    <div class="grid grid-cols-2 gap-2 text-[10px] text-slate-600 mb-3 bg-slate-50 p-2 rounded-xl">
+                        <div class="flex items-center space-x-1"><span class="w-3 h-3 bg-emerald-500 rounded-sm inline-block"></span><span>Attempted</span></div>
+                        <div class="flex items-center space-x-1"><span class="w-3 h-3 bg-red-500 rounded-sm inline-block"></span><span>Not Attempted</span></div>
+                        <div class="flex items-center space-x-1 col-span-2"><span class="w-3 h-3 bg-amber-400 rounded-sm inline-block"></span><span>Marked as Review</span></div>
+                    </div>
+                    <div id="palette-grid" class="grid grid-cols-5 gap-1.5 max-h-[350px] overflow-y-auto pr-1"></div>
+                </div>
+                <button onclick="submitTest()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-bold transition shadow-sm">टेस्ट सबमिट करें</button>
+            </div>
+        </div>
+
+        <!-- Result View -->
+        <div id="result-view" class="hidden max-w-md mx-auto bg-white/95 backdrop-blur text-slate-800 p-8 rounded-2xl shadow-xl border border-indigo-200 text-center space-y-4">
+            <div class="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-slate-900">टेस्ट समाप्त हुआ!</h2>
+            <p class="text-slate-600 text-sm">शानदार प्रयास। आपका कुल स्कोर नीचे दिया गया है:</p>
+            <div class="text-3xl font-extrabold text-indigo-600 py-2" id="final-score">0 / 100</div>
+            <button onclick="showHomeView(activeUsername)" class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:bg-indigo-700 transition shadow-sm">होम पेज पर लौटें</button>
+        </div>
+
+        <!-- Static Pages View (Terms, Privacy, Refund, Contact) -->
+        <div id="static-page-view" class="hidden max-w-3xl mx-auto bg-white/95 backdrop-blur text-slate-800 p-8 rounded-2xl shadow-xl border border-indigo-200 space-y-6">
+            <div class="flex justify-between items-center border-b pb-4">
+                <h2 id="static-page-title" class="text-xl font-bold text-slate-900">Title</h2>
+                <button onclick="hideStaticPage()" class="text-xs bg-slate-200 hover:bg-slate-300 px-3 py-1.5 rounded-xl font-medium transition text-slate-800">बंद करें</button>
+            </div>
+            <div id="static-page-content" class="text-sm text-slate-600 space-y-4 max-h-[400px] overflow-y-auto pr-2"></div>
+        </div>
+
+    </main>
+
+    <!-- Payment Popup Modal with Mandatory Device Warning & Checkbox -->
+    <div id="payment-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white text-slate-800 max-w-md w-full p-6 rounded-3xl shadow-2xl border border-indigo-100 text-center space-y-4 animate-scaleUp">
+            <div class="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto text-3xl shadow-inner">
+                <i class="fa-solid fa-crown"></i>
+            </div>
+            <h3 class="text-xl font-extrabold text-slate-900">Unlock All Targeted Exam Test Series</h3>
+            <p class="text-xs text-slate-500">सभी 25 सेट और सभी श्रेणियों के कुल 10,000 प्रश्नों को तुरंत अनलॉक करें केवल ₹99 में!</p>
+            
+            <!-- Mandatory Rule Notice with Checkbox -->
+            <div class="bg-amber-50 border border-amber-300 text-amber-900 p-3 rounded-xl text-xs font-semibold text-left space-y-2">
+                <div class="flex items-start space-x-2">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-600 text-sm mt-0.5"></i>
+                    <div>
+                        <p id="rule-text" class="leading-relaxed font-medium">The test will run only on the device from which you are paying for the exam. If you change your device or perform a factory data reset on your device, you may have to purchase the test again.</p>
+                        <button type="button" onclick="toggleHindiTranslation()" id="hindi-toggle-btn" class="text-[11px] text-indigo-600 font-bold underline mt-1 hover:text-indigo-800">Read in Hindi (हिंदी में पढ़ें)</button>
+                    </div>
+                </div>
+                <label class="flex items-center space-x-2 pt-1 border-t border-amber-200 cursor-pointer">
+                    <input type="checkbox" id="rule-checkbox" onchange="togglePaymentButton()" class="w-4 h-4 text-indigo-600 rounded border-amber-300 focus:ring-indigo-500">
+                    <span class="text-[11px] font-bold text-amber-950">I have read and agree to this rule</span>
+                </label>
+            </div>
+
+            <div class="space-y-2 pt-1">
+                <a id="razorpay-btn" href="#" onclick="openPaymentLink(event)" class="block w-full bg-slate-300 text-slate-500 font-bold py-3 rounded-xl text-sm transition shadow-sm pointer-events-none">
+                    <i class="fa-solid fa-lock mr-1"></i> Pay ₹99 via Razorpay & Unlock
+                </a>
+                <button onclick="closePaymentPopup()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold py-2 rounded-xl text-xs transition">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer with Ayush Attribution and Comprehensive Legal Pages Links -->
+    <footer class="bg-indigo-950/90 text-slate-300 border-t border-indigo-900/50 py-6 text-center text-xs space-y-2">
+        <div class="flex flex-wrap justify-center gap-4 text-indigo-200 font-medium">
+            <button onclick="showStaticPage('terms')" class="hover:underline">Terms & Conditions</button>
+            <span>|</span>
+            <button onclick="showStaticPage('privacy')" class="hover:underline">Privacy Policy</button>
+            <span>|</span>
+            <button onclick="showStaticPage('refund')" class="hover:underline">Refund & Cancellation</button>
+            <span>|</span>
+            <button onclick="showStaticPage('contact')" class="hover:underline">Contact Us</button>
+        </div>
+        <p>© 2026 Amrit Academy | Created by Ayush | All Rights Reserved</p>
+    </footer>
+
+    <!-- Script Logic -->
+    <script>
+        let currentLang = 'hi';
+        let currentCategory = '';
+        let currentSetIndex = 0;
+        let currentQuestions = [];
+        let currentIndex = 0;
+        let userAnswers = {}; 
+        let activeUsername = null;
+        let timerInterval = null;
+        let timeLeft = 3600; 
+        let isUnlocked = localStorage.getItem('amrit_unlocked') === 'true';
+        let isHindiRule = false;
+
+        // JSON ranges mapping: Bihar Police (1-2500), Daroga (2501-5000), Reasoning (5001-7500), Math (7501-10000)
+        const questionBank = {
+            police: generateCategoryQuestions(1, 2500, "बिहार पुलिस"),
+            daroga: generateCategoryQuestions(2501, 5000, "बिहार दरोगा"),
+            reasoning: generateCategoryQuestions(5001, 7500, "तार्किक योग्यता"),
+            math: generateCategoryQuestions(7501, 10000, "गणित")
+        };
+
+        function generateCategoryQuestions(startId, endId, categoryName) {
+            let sets = [];
+            let qCounter = startId;
+            for (let s = 1; s <= 25; s++) {
+                let questions = [];
+                for (let q = 1; q <= 100; q++) {
+                    if (qCounter <= endId) {
+                        questions.push({
+                            id: qCounter,
+                            q: `${categoryName} के अंतर्गत परीक्षा अभ्यास हेतु महत्वपूर्ण वस्तुनिष्ठ प्रश्न संख्या ${qCounter} यहाँ प्रदर्शित है?`,
+                            options: ["विकल्प A", "विकल्प B", "विकल्प C", "विकल्प D"],
+                            answer: 0
+                        });
+                        qCounter++;
+                    }
+                }
+                sets.push(questions);
+            }
+            return sets;
+        }
+
+        window.onload = function() {
+            activeUsername = localStorage.getItem('amrit_active_user');
+            if (activeUsername) {
+                showHomeView(activeUsername);
+            } else {
+                document.getElementById('auth-view').classList.remove('hidden');
+            }
+        };
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'en' ? 'hi' : 'en';
+            document.getElementById('lang-btn').innerText = currentLang === 'hi' ? "🌐 Switch to English" : "🌐 हिंदी में बदलें";
+        }
+
+        function togglePasswordVisibility(inputId, iconId) {
+            const input = document.getElementById(inputId);
+            const icon = document.getElementById(iconId);
+            if (input.type === "password") {
+                input.type = "text";
+                icon.classList.remove("fa-eye");
+                icon.classList.add("fa-eye-slash");
+            } else {
+                input.type = "password";
+                icon.classList.remove("fa-eye-slash");
+                icon.classList.add("fa-eye");
+            }
+        }
+
+        function switchAuthMode(mode) {
+            document.getElementById('login-form').classList.add('hidden');
+            document.getElementById('register-form').classList.add('hidden');
+            document.getElementById('forgot-form').classList.add('hidden');
+            hideAlert();
+
+            if (mode === 'register') {
+                document.getElementById('register-form').classList.remove('hidden');
+            } else if (mode === 'forgot') {
+                document.getElementById('forgot-form').classList.remove('hidden');
+            } else {
+                document.getElementById('login-form').classList.remove('hidden');
+            }
+        }
+
+        function showAlert(message, isSuccess = false) {
+            const alertBox = document.getElementById('auth-alert');
+            alertBox.innerText = message;
+            alertBox.className = `mb-4 p-3 rounded-xl text-xs font-medium text-center ${isSuccess ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`;
+            alertBox.classList.remove('hidden');
+        }
+
+        function hideAlert() {
+            document.getElementById('auth-alert').classList.add('hidden');
+        }
+
+        function handleRegister(e) {
+            e.preventDefault();
+            const name = document.getElementById('reg-name').value.trim();
+            const email = document.getElementById('reg-email').value.trim().toLowerCase();
+            const password = document.getElementById('reg-password').value;
+
+            let users = JSON.parse(localStorage.getItem('amrit_users')) || [];
+            if (users.find(u => u.email === email)) {
+                showAlert("यह ईमेल आईडी पहले से रजिस्टर्ड है!");
+                return;
+            }
+            users.push({ name, email, password });
+            localStorage.setItem('amrit_users', JSON.stringify(users));
+            showAlert("रजिस्ट्रेशन सफल! अब लॉगिन करें।", true);
+            setTimeout(() => switchAuthMode('login'), 1200);
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value.trim().toLowerCase();
+            const password = document.getElementById('login-password').value;
+
+            let users = JSON.parse(localStorage.getItem('amrit_users')) || [];
+            const user = users.find(u => u.email === email && u.password === password);
+
+            if (user) {
+                activeUsername = user.name;
+                localStorage.setItem('amrit_active_user', user.name);
+                showHomeView(user.name);
+            } else {
+                showAlert("गलत ईमेल आईडी या पासवर्ड!");
+            }
+        }
+
+        function handleForgotPassword(e) {
+            e.preventDefault();
+            const email = document.getElementById('forgot-email').value.trim().toLowerCase();
+            const newPassword = document.getElementById('forgot-password').value;
+
+            let users = JSON.parse(localStorage.getItem('amrit_users')) || [];
+            const userIndex = users.findIndex(u => u.email === email);
+
+            if (userIndex !== -1) {
+                users[userIndex].password = newPassword;
+                localStorage.setItem('amrit_users', JSON.stringify(users));
+                showAlert("पासवर्ड सफलतापूर्वक अपडेट हो गया! अब लॉगिन करें।", true);
+                setTimeout(() => switchAuthMode('login'), 1200);
+            } else {
+                showAlert("यह ईमेल आईडी हमारे रिकॉर्ड में नहीं है!");
+            }
+        }
+
+        function showHomeView(username) {
+            if(timerInterval) clearInterval(timerInterval);
+            document.getElementById('auth-view').classList.add('hidden');
+            document.getElementById('sets-view').classList.add('hidden');
+            document.getElementById('quiz-view').classList.add('hidden');
+            document.getElementById('result-view').classList.add('hidden');
+            document.getElementById('static-page-view').classList.add('hidden');
+            document.getElementById('home-view').classList.remove('hidden');
+            document.getElementById('user-nav-info').classList.remove('hidden');
+            document.getElementById('nav-username').innerText = `नमस्ते, ${username}`;
+        }
+
+        function logout() {
+            if(timerInterval) clearInterval(timerInterval);
+            activeUsername = null;
+            localStorage.removeItem('amrit_active_user');
+            document.getElementById('home-view').classList.add('hidden');
+            document.getElementById('sets-view').classList.add('hidden');
+            document.getElementById('quiz-view').classList.add('hidden');
+            document.getElementById('result-view').classList.add('hidden');
+            document.getElementById('static-page-view').classList.add('hidden');
+            document.getElementById('user-nav-info').classList.add('hidden');
+            document.getElementById('auth-view').classList.remove('hidden');
+            document.getElementById('login-form').reset();
+            hideAlert();
+        }
+
+        function openCategory(category) {
+            currentCategory = category;
+            document.getElementById('home-view').classList.add('hidden');
+            document.getElementById('sets-view').classList.remove('hidden');
+            
+            const grid = document.getElementById('sets-grid');
+            grid.innerHTML = '';
+            
+            for (let i = 1; i <= 25; i++) {
+                const btn = document.createElement('button');
+                let isLocked = (i > 1 && !isUnlocked);
+                
+                if (isLocked) {
+                    btn.className = "p-4 bg-slate-100 border border-slate-200 rounded-xl shadow-sm text-slate-400 font-bold transition text-center relative cursor-pointer";
+                    btn.innerHTML = `Set ${i} <div class="text-[10px] text-red-500 mt-1"><i class="fa-solid fa-lock mr-0.5"></i> Locked</div>`;
+                    btn.onclick = () => showPaymentPopup();
+                } else {
+                    btn.className = "p-4 bg-white hover:bg-indigo-50 border border-slate-200 rounded-xl shadow-sm hover:border-indigo-600 font-bold text-slate-800 transition text-center";
+                    btn.innerHTML = `Set ${i} <div class="text-[10px] font-normal text-emerald-600 mt-1"><i class="fa-solid fa-unlock mr-0.5"></i> 100 Qs</div>`;
+                    btn.onclick = () => startQuiz(i - 1);
+                }
+                grid.appendChild(btn);
+            }
+        }
+
+        // Payment Popup Management & Mandatory Checkbox Rule Validation
+        function showPaymentPopup() {
+            document.getElementById('rule-checkbox').checked = false;
+            isHindiRule = false;
+            document.getElementById('rule-text').innerText = "The test will run only on the device from which you are paying for the exam. If you change your device or perform a factory data reset on your device, you may have to purchase the test again.";
+            document.getElementById('hindi-toggle-btn').innerText = "Read in Hindi (हिंदी में पढ़ें)";
+            togglePaymentButton();
+            document.getElementById('payment-modal').classList.remove('hidden');
+        }
+
+        function toggleHindiTranslation() {
+            isHindiRule = !isHindiRule;
+            const ruleTextEl = document.getElementById('rule-text');
+            const toggleBtnEl = document.getElementById('hindi-toggle-btn');
+            if (isHindiRule) {
+                ruleTextEl.innerText = "परीक्षा केवल उसी डिवाइस पर चलेगी जिस डिवाइस से आप इसके लिए भुगतान (पेमेंट) कर रहे हैं। यदि आप अपना डिवाइस बदलते हैं या अपने डिवाइस पर फ़ैक्टरी डेटा रीसेट (factory data reset) करते हैं, तो आपको टेस्ट दोबारा खरीदना पड़ सकता है।";
+                toggleBtnEl.innerText = "Read in English (अंग्रेजी में पढ़ें)";
+            } else {
+                ruleTextEl.innerText = "The test will run only on the device from which you are paying for the exam. If you change your device or perform a factory data reset on your device, you may have to purchase the test again.";
+                toggleBtnEl.innerText = "Read in Hindi (हिंदी में पढ़ें)";
+            }
+        }
+
+        function closePaymentPopup() {
+            document.getElementById('payment-modal').classList.add('hidden');
+        }
+
+        function togglePaymentButton() {
+            const isChecked = document.getElementById('rule-checkbox').checked;
+            const btn = document.getElementById('razorpay-btn');
+            if (isChecked) {
+                btn.href = "https://rzp.io/rzp/N2YXUJWs";
+                btn.target = "_blank";
+                btn.className = "block w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl text-sm transition shadow-lg cursor-pointer";
+                btn.innerHTML = '<i class="fa-solid fa-lock-open mr-1"></i> Pay ₹99 via Razorpay & Unlock';
+            } else {
+                btn.removeAttribute('href');
+                btn.removeAttribute('target');
+                btn.className = "block w-full bg-slate-300 text-slate-500 font-bold py-3 rounded-xl text-sm transition shadow-sm pointer-events-none";
+                btn.innerHTML = '<i class="fa-solid fa-lock mr-1"></i> Pay ₹99 via Razorpay & Unlock';
+            }
+        }
+
+        function openPaymentLink(e) {
+            const isChecked = document.getElementById('rule-checkbox').checked;
+            if (!isChecked) {
+                e.preventDefault();
+                alert("Please check the box to confirm you have read the rule before proceeding to payment.");
+            }
+        }
+
+        function startQuiz(setIndex) {
+            if (setIndex > 0 && !isUnlocked) {
+                showPaymentPopup();
+                return;
+            }
+
+            currentSetIndex = setIndex;
+            currentQuestions = questionBank[currentCategory][setIndex];
+            currentIndex = 0;
+            userAnswers = {};
+            timeLeft = 3600; 
+            
+            for(let i=0; i<currentQuestions.length; i++) {
+                userAnswers[i] = { selected: null, status: 'not' };
+            }
+
+            document.getElementById('sets-view').classList.add('hidden');
+            document.getElementById('quiz-view').classList.remove('hidden');
+            document.getElementById('quiz-category-badge').innerText = `${currentCategory.toUpperCase()} - Set ${setIndex + 1}`;
+            
+            buildPalette();
+            loadQuestion();
+            startTimer();
+        }
+
+        function startTimer() {
+            if(timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if(timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    submitTest();
+                } else {
+                    timeLeft--;
+                    let mins = Math.floor(timeLeft / 60);
+                    let secs = timeLeft % 60;
+                    document.getElementById('timer-display').innerHTML = `<i class="fa-solid fa-clock mr-1"></i> ${mins}:${secs < 10 ? '0' : ''}${secs}`;
+                }
+            }, 1000);
+        }
+
+        function buildPalette() {
+            const paletteGrid = document.getElementById('palette-grid');
+            paletteGrid.innerHTML = '';
+            for (let i = 0; i < 100; i++) {
+                const pBtn = document.createElement('button');
+                pBtn.id = `pal-${i}`;
+                pBtn.className = "w-8 h-8 rounded-lg text-xs font-bold border border-slate-200 flex items-center justify-center transition bg-red-500 text-white";
+                pBtn.innerText = i + 1;
+                pBtn.onclick = () => goToQuestion(i);
+                paletteGrid.appendChild(pBtn);
+            }
+            updatePaletteColors();
+        }
+
+        function updatePaletteColors() {
+            for (let i = 0; i < 100; i++) {
+                const btn = document.getElementById(`pal-${i}`);
+                if (!btn) continue;
+                const state = userAnswers[i].status;
+                
+                btn.className = "w-8 h-8 rounded-lg text-xs font-bold border border-slate-200 flex items-center justify-center transition text-white ";
+                if (state === 'attempted') {
+                    btn.classList.add('bg-emerald-500'); 
+                } else if (state === 'review') {
+                    btn.classList.add('bg-amber-400', 'text-slate-900'); 
+                } else {
+                    btn.classList.add('bg-red-500'); 
+                }
+
+                if(i === currentIndex) {
+                    btn.classList.add('ring-2', 'ring-indigo-900');
+                }
+            }
+        }
+
+        function goToQuestion(index) {
+            currentIndex = index;
+            loadQuestion();
+            updatePaletteColors();
+        }
+
+        function loadQuestion() {
+            const qData = currentQuestions[currentIndex];
+            document.getElementById('question-count').innerText = `Question ${currentIndex + 1} / 100 (Q.ID: ${qData.id})`;
+            document.getElementById('question-text').innerText = qData.q;
+
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+
+            const savedSelection = userAnswers[currentIndex].selected;
+
+            qData.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                let isSelected = savedSelection === index;
+                btn.className = `w-full text-left p-3.5 rounded-xl border text-sm font-medium transition flex items-center space-x-3 ${isSelected ? 'border-indigo-600 bg-indigo-50 text-indigo-900' : 'border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/50'}`;
+                btn.innerHTML = `<span class="w-6 h-6 rounded-full ${isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'} flex items-center justify-center text-xs font-bold">${String.fromCharCode(65 + index)}</span> <span>${opt}</span>`;
+                btn.onclick = () => selectOption(index);
+                container.appendChild(btn);
+            });
+            updatePaletteColors();
+        }
+
+        function selectOption(index) {
+            userAnswers[currentIndex].selected = index;
+            userAnswers[currentIndex].status = 'attempted'; 
+            loadQuestion();
+        }
+
+        function markForReview() {
+            userAnswers[currentIndex].status = 'review'; 
+            updatePaletteColors();
+            if(currentIndex < 99) {
+                currentIndex++;
+                loadQuestion();
+            }
+        }
+
+        function prevQuestion() {
+            if(currentIndex > 0) {
+                currentIndex--;
+                loadQuestion();
+            }
+        }
+
+        function nextQuestion() {
+            if(currentIndex < 99) {
+                currentIndex++;
+                loadQuestion();
+            }
+        }
+
+        function submitTest() {
+            if(timerInterval) clearInterval(timerInterval);
+            let score = 0;
+            for (let i = 0; i < currentQuestions.length; i++) {
+                if (userAnswers[i].selected === currentQuestions[i].answer) {
+                    score++;
+                }
+            }
+            document.getElementById('quiz-view').classList.add('hidden');
+            document.getElementById('result-view').classList.remove('hidden');
+            document.getElementById('final-score').innerText = `${score} / 100`;
+        }
+
+        function exitQuiz() {
+            if(confirm("क्या आप वाकई टेस्ट छोड़ना चाहते हैं?")) {
+                if(timerInterval) clearInterval(timerInterval);
+                openCategory(currentCategory);
+            }
+        }
+
+        // Static Pages Handler (Terms, Privacy, Refund, Contact)
+        function showStaticPage(type) {
+            const titleEl = document.getElementById('static-page-title');
+            const contentEl = document.getElementById('static-page-content');
+            
+            document.getElementById('auth-view').classList.add('hidden');
+            document.getElementById('home-view').classList.add('hidden');
+            document.getElementById('sets-view').classList.add('hidden');
+            document.getElementById('quiz-view').classList.add('hidden');
+            document.getElementById('result-view').classList.add('hidden');
+            document.getElementById('static-page-view').classList.remove('hidden');
+
+            if (type === 'terms') {
+                titleEl.innerText = "Terms & Conditions";
+                contentEl.innerHTML = `
+                    <p><strong>1. Introduction:</strong> Welcome to Amrit Academy. By accessing our online test series portal, you agree to comply with and be bound by the following terms and conditions.</p>
+                    <p><strong>2. Single Device Policy:</strong> Each test subscription and login is strictly mapped to a single device. Sharing login credentials or attempting to access tests across multiple unauthorized devices may result in permanent account suspension without refund.</p>
+                    <p><strong>3. Intellectual Property:</strong> All test papers, questions, answers, graphics, and portal designs created by Ayush for Amrit Academy are protected under copyright laws. Unauthorized duplication or distribution is strictly prohibited.</p>
+                    <p><strong>4. User Conduct:</strong> Users must maintain academic integrity while participating in mock tests and refrain from employing automated scripts or bots.</p>
+                `;
+            } else if (type === 'privacy') {
+                titleEl.innerText = "Privacy Policy";
+                contentEl.innerHTML = `
+                    <p><strong>1. Information Collection:</strong> We collect basic registration details such as your name, email address, and secure password storage to personalize your test-taking experience.</p>
+                    <p><strong>2. Data Usage:</strong> Your performance analytics, test scores, and history are stored securely via browser local storage and cloud database rules to track your competitive exam preparation progress.</p>
+                    <p><strong>3. Device Binding & Reset Policy:</strong> परीक्षा केवल उसी डिवाइस पर चलेगी जिस डिवाइस से आप इसके लिए भुगतान (पेमेंट) कर रहे हैं। यदि आप अपना डिवाइस बदलते हैं या अपने डिवाइस पर फ़ैक्टरी डेटा रीसेट (factory data reset) करते हैं, तो आपको टेस्ट दोबारा खरीदना पड़ सकता है। The test will run only on the device from which you pay. If you change your device or perform a factory data reset, access might be revoked and you may have to repurchase the test series.</p>
+                    <p><strong>4. Cookie Policy:</strong> We use essential cookies to maintain active login sessions and language preferences.</p>
+                    <p><strong>5. Third-Party Sharing:</strong> Amrit Academy does not sell, trade, or transfer your personal identification information to outside parties.</p>
+                `;
+            } else if (type === 'refund') {
+                titleEl.innerText = "Refund & Cancellation Policy";
+                contentEl.innerHTML = `
+                    <p><strong>1. Digital Goods Nature:</strong> Since Amrit Academy provides digital online test series access and downloadable educational content instantly upon enrollment, all purchases and subscription payments are final.</p>
+                    <p><strong>2. Refund Eligibility:</strong> Refunds are strictly not applicable once a test set has been accessed or initiated. Duplicate transactions or payment gateway errors will be verified and refunded to the original payment source within 5-7 business days.</p>
+                `;
+            } else if (type === 'contact') {
+                titleEl.innerText = "Contact Us";
+                contentEl.innerHTML = `
+                    <p><strong>Platform Creator:</strong> Ayush (Amrit Academy Portal)</p>
+                    <p><strong>Support Email:</strong> acharyaamrit620@gmail.com</p>
+                    <p><strong>Support Phone:</strong> +91 6207 662510</p>
+                    <p><strong>Operational Location:</strong> Bihar, India</p>
+                    <p>For any technical assistance, question discrepancies, or enrollment queries, feel free to reach out to our helpdesk via email or phone.</p>
+                `;
+            }
+        }
+
+        function hideStaticPage() {
+            document.getElementById('static-page-view').classList.add('hidden');
+            if (activeUsername) {
+                showHomeView(activeUsername);
+            } else {
+                document.getElementById('auth-view').classList.remove('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
