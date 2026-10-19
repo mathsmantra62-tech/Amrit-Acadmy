@@ -217,7 +217,7 @@
                 </div>
             </div>
 
-            <!-- Palette Palette -->
+            <!-- Side 1-100 Palette -->
             <div class="bg-white/95 backdrop-blur text-slate-800 p-4 rounded-2xl shadow-xl border border-indigo-200 space-y-4 flex flex-col justify-between">
                 <div>
                     <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wide mb-3 border-b pb-2">प्रश्न पट्टिका (Palette)</h3>
@@ -261,7 +261,7 @@
                 <i class="fa-solid fa-crown"></i>
             </div>
             <h3 class="text-xl font-extrabold text-slate-900">Unlock All Targeted Exam Test Series</h3>
-            <p class="text-xs text-slate-500">सभी 25 सेट और सभी 4 श्रेणियों के कुल 10,000 प्रश्नों को तुरंत अनलॉक करें केवल ₹99 में!</p>
+            <p class="text-xs text-slate-500">सभी 25 सेट और सभी श्रेणियों के कुल 10,000 प्रश्नों को तुरंत अनलॉक करें केवल ₹99 में!</p>
             
             <div class="bg-amber-50 border border-amber-300 text-amber-900 p-3 rounded-xl text-xs font-semibold text-left space-y-2">
                 <div class="flex items-start space-x-2">
@@ -384,34 +384,25 @@
                 if (!response.ok) throw new Error("question.json not found");
                 const data = await response.json();
 
-                let allQuestions = [];
-                if (Array.isArray(data)) {
-                    allQuestions = data;
-                } else if (data['bihar police'] && Array.isArray(data['bihar police'])) {
-                    allQuestions = data['bihar police'];
-                } else if (data['questions'] && Array.isArray(data['questions'])) {
-                    allQuestions = data['questions'];
-                }
+                // 1. बिहार पुलिस ('bihar police' या 'police')
+                const policeData = data['bihar police'] || data['police'] || [];
+                questionBank.police = createCategorySets(policeData, "बिहार पुलिस", 1);
 
-                // 1-2500 Bihar Police (25 sets)
-                const policeList = allQuestions.slice(0, 2500);
-                questionBank.police = createCategorySets(policeList, "बिहार पुलिस", 1);
+                // 2. बिहार दरोगा ('bihardaroga' या 'daroga')
+                const darogaData = data['bihardaroga'] || data['daroga'] || [];
+                questionBank.daroga = createCategorySets(darogaData, "बिहार दरोगा", 2501);
 
-                // 2501-5000 Bihar Daroga (25 sets)
-                const darogaList = allQuestions.slice(2500, 5000);
-                questionBank.daroga = createCategorySets(darogaList, "बिहार दरोगा", 2501);
+                // 3. रीजनिंग ('reasoning')
+                const reasoningData = data['reasoning'] || [];
+                questionBank.reasoning = createCategorySets(reasoningData, "तार्किक योग्यता", 5001);
 
-                // 5001-7500 Reasoning (25 sets)
-                const reasoningList = allQuestions.slice(5000, 7500);
-                questionBank.reasoning = createCategorySets(reasoningList, "तार्किक योग्यता", 5001);
+                // 4. गणित ('math' या 'maths')
+                const mathData = data['math'] || data['maths'] || [];
+                questionBank.math = createCategorySets(mathData, "गणित", 7501);
 
-                // 7501-10000 Maths (25 sets)
-                const mathList = allQuestions.slice(7500, 10000);
-                questionBank.math = createCategorySets(mathList, "गणित", 7501);
-
-                console.log("10,000 Questions mapped successfully!");
+                console.log("सभी 4 श्रेणियां JSON से मैप हो गई हैं!");
             } catch (error) {
-                console.warn("Error loading JSON, falling back to dummy questions:", error.message);
+                console.warn("JSON लोड करने में समस्या, फॉलबैक का उपयोग:", error.message);
                 questionBank = {
                     police: generateCategoryQuestions(1, 2500, "बिहार पुलिस"),
                     daroga: generateCategoryQuestions(2501, 5000, "बिहार दरोगा"),
@@ -646,7 +637,7 @@
             currentQuestions = questionBank[currentCategory][setIndex] || [];
             
             if (currentQuestions.length === 0) {
-                alert("इस सेट में प्रश्न लोड नहीं हो सके।");
+                alert("इस सेट में प्रश्न उपलब्ध नहीं हैं।");
                 return;
             }
 
