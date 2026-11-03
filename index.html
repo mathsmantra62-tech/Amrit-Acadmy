@@ -284,6 +284,14 @@
                 <button onclick="closePaymentPopup()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold py-2 rounded-xl text-xs transition">
                     Cancel
                 </button>
+                <div class="border-t border-slate-200 pt-3 text-left space-y-2">
+                    <p class="text-[11px] font-semibold text-slate-600">पेमेंट कर चुके हैं? अपनी Payment ID डालें:</p>
+                    <div class="flex gap-2">
+                        <input type="text" id="manual-pay-id" placeholder="pay_XXXXXXXXXXXXXX" class="flex-1 px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-indigo-600">
+                        <button onclick="verifyManualPayment()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl text-xs font-bold transition">Verify</button>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -313,7 +321,7 @@
         let activeUsername = null;
         let timerInterval = null;
         let timeLeft = 3600; 
-        let isUnlocked = localStorage.getItem('amrit_unlocked') === 'true';
+        let isUnlocked = false; // server (/api/status) decide karta hai
         let isHindiRule = false;
 
         let questionBank = {
@@ -384,15 +392,19 @@
                 if (!response.ok) throw new Error("question.json not found");
                 const data = await response.json();
 
+                // 1. बिहार पुलिस ('bihar police' या 'police')
                 const policeData = data['bihar police'] || data['police'] || [];
                 questionBank.police = createCategorySets(policeData, "बिहार पुलिस", 1);
 
+                // 2. बिहार दरोगा ('bihardaroga' या 'daroga')
                 const darogaData = data['bihardaroga'] || data['daroga'] || [];
                 questionBank.daroga = createCategorySets(darogaData, "बिहार दरोगा", 2501);
 
+                // 3. रीजनिंग ('reasoning')
                 const reasoningData = data['reasoning'] || [];
                 questionBank.reasoning = createCategorySets(reasoningData, "तार्किक योग्यता", 5001);
 
+                // 4. गणित ('math' या 'maths')
                 const mathData = data['math'] || data['maths'] || [];
                 questionBank.math = createCategorySets(mathData, "गणित", 7501);
 
@@ -408,18 +420,71 @@
             }
         }
 
+        // ---------- Payment / Unlock (server verified) ----------
+        function getDeviceId() {
+            let id = localStorage.getItem('amrit_device_id');
+            if (!id) {
+                id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+                    : Date.now().toString(36) + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+                localStorage.setItem('amrit_device_id', id);
+            }
+            return id;
+        }
+
+        async function claimPayment(payId) {
+            try {
+                const r = await fetch('/api/claim', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ paymentId: payId, deviceId: getDeviceId() })
+                });
+                const d = await r.json();
+                if (d.ok) { isUnlocked = true; return { ok: true }; }
+                return { ok: false, msg: d.message || 'Payment verify नहीं हुआ।' };
+            } catch (e) {
+                return { ok: false, msg: 'नेटवर्क में समस्या है, दोबारा कोशिश करें।' };
+            }
+        }
+
+        async function syncUnlock() {
+            try {
+                const r = await fetch('/api/status?deviceId=' + encodeURIComponent(getDeviceId()));
+                const d = await r.json();
+                isUnlocked = !!d.unlocked;
+            } catch (e) { /* offline: locked ही रहेगा */ }
+        }
+
+        async function checkPaymentReturn() {
+            const params = new URLSearchParams(window.location.search);
+            const payId = params.get('razorpay_payment_id');
+            if (payId && payId.startsWith('pay_')) {
+                window.history.replaceState({}, document.title, window.location.pathname);
+                const res = await claimPayment(payId);
+                setTimeout(() => alert(res.ok ? "पेमेंट सफल! सभी टेस्ट सेट अनलॉक हो गए हैं।" : res.msg), 300);
+            }
+        }
+
+        async function verifyManualPayment() {
+            const input = document.getElementById('manual-pay-id');
+            const payId = input.value.trim();
+            if (!payId) { alert("कृपया अपनी Payment ID (pay_...) डालें।"); return; }
+            const res = await claimPayment(payId);
+            if (res.ok) {
+                alert("पेमेंट सफल! सभी टेस्ट सेट अनलॉक हो गए हैं।");
+                input.value = '';
+                closePaymentPopup();
+                if (currentCategory && !document.getElementById('sets-view').classList.contains('hidden')) {
+                    openCategory(currentCategory);
+                }
+            } else {
+                alert(res.msg);
+            }
+        }
+
         window.onload = async function() {
             await loadQuestionsFromJSON();
-
-            // Check if payment was successful and redirected back
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('payment') === 'success' || urlParams.get('razorpay_payment_id')) {
-                localStorage.setItem('amrit_unlocked', 'true');
-                isUnlocked = true;
-                alert("Payment successful! All test series unlocked.");
-                window.history.replaceState({}, document.title, window.location.pathname);
-            }
-
+            await checkPaymentReturn();
+            await syncUnlock();
             activeUsername = localStorage.getItem('amrit_active_user');
             if (activeUsername) {
                 showHomeView(activeUsername);
@@ -612,14 +677,8 @@
         function togglePaymentButton() {
             const isChecked = document.getElementById('rule-checkbox').checked;
             const btn = document.getElementById('razorpay-btn');
-            
-            // Generate payment link with callback parameter for auto redirect and unlock
-            const currentDomain = window.location.origin + window.location.pathname;
-            const basePaymentLink = "https://rzp.io/rzp/EjlKqSp";
-            const paymentURL = `${basePaymentLink}?callback_url=${encodeURIComponent(currentDomain + "?payment=success")}`;
-
             if (isChecked) {
-                btn.href = paymentURL;
+                btn.href = "https://rzp.io/rzp/EjlKqSp";
                 btn.target = "_blank";
                 btn.className = "block w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl text-sm transition shadow-lg cursor-pointer";
                 btn.innerHTML = '<i class="fa-solid fa-lock-open mr-1"></i> Pay ₹99 via Razorpay & Unlock';
@@ -636,8 +695,6 @@
             if (!isChecked) {
                 e.preventDefault();
                 alert("Please check the box to confirm you have read the rule before proceeding to payment.");
-            } else {
-                closePaymentPopup();
             }
         }
 
