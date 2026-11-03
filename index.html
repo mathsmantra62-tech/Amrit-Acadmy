@@ -384,19 +384,15 @@
                 if (!response.ok) throw new Error("question.json not found");
                 const data = await response.json();
 
-                // 1. बिहार पुलिस ('bihar police' या 'police')
                 const policeData = data['bihar police'] || data['police'] || [];
                 questionBank.police = createCategorySets(policeData, "बिहार पुलिस", 1);
 
-                // 2. बिहार दरोगा ('bihardaroga' या 'daroga')
                 const darogaData = data['bihardaroga'] || data['daroga'] || [];
                 questionBank.daroga = createCategorySets(darogaData, "बिहार दरोगा", 2501);
 
-                // 3. रीजनिंग ('reasoning')
                 const reasoningData = data['reasoning'] || [];
                 questionBank.reasoning = createCategorySets(reasoningData, "तार्किक योग्यता", 5001);
 
-                // 4. गणित ('math' या 'maths')
                 const mathData = data['math'] || data['maths'] || [];
                 questionBank.math = createCategorySets(mathData, "गणित", 7501);
 
@@ -414,6 +410,16 @@
 
         window.onload = async function() {
             await loadQuestionsFromJSON();
+
+            // Check if payment was successful and redirected back
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('payment') === 'success' || urlParams.get('razorpay_payment_id')) {
+                localStorage.setItem('amrit_unlocked', 'true');
+                isUnlocked = true;
+                alert("Payment successful! All test series unlocked.");
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+
             activeUsername = localStorage.getItem('amrit_active_user');
             if (activeUsername) {
                 showHomeView(activeUsername);
@@ -606,8 +612,14 @@
         function togglePaymentButton() {
             const isChecked = document.getElementById('rule-checkbox').checked;
             const btn = document.getElementById('razorpay-btn');
+            
+            // Generate payment link with callback parameter for auto redirect and unlock
+            const currentDomain = window.location.origin + window.location.pathname;
+            const basePaymentLink = "https://rzp.io/rzp/N2YXUJWs";
+            const paymentURL = `${basePaymentLink}?callback_url=${encodeURIComponent(currentDomain + "?payment=success")}`;
+
             if (isChecked) {
-                btn.href = "https://rzp.io/rzp/N2YXUJWs";
+                btn.href = paymentURL;
                 btn.target = "_blank";
                 btn.className = "block w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl text-sm transition shadow-lg cursor-pointer";
                 btn.innerHTML = '<i class="fa-solid fa-lock-open mr-1"></i> Pay ₹99 via Razorpay & Unlock';
@@ -624,6 +636,8 @@
             if (!isChecked) {
                 e.preventDefault();
                 alert("Please check the box to confirm you have read the rule before proceeding to payment.");
+            } else {
+                closePaymentPopup();
             }
         }
 
