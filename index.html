@@ -107,16 +107,8 @@
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Registered Email ID</label>
                     <input type="email" id="forgot-email" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-600" placeholder="student@gmail.com">
                 </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">New Password</label>
-                    <div class="relative">
-                        <input type="password" id="forgot-password" required class="w-full px-4 py-2.5 pr-10 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-600" placeholder="••••••••">
-                        <button type="button" onclick="togglePasswordVisibility('forgot-password', 'eye-forgot')" class="absolute right-3 top-3 text-slate-400 hover:text-slate-600 text-sm">
-                            <i id="eye-forgot" class="fa-solid fa-eye"></i>
-                        </button>
-                    </div>
-                </div>
-                <button type="submit" class="w-full bg-indigo-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-indigo-700 transition shadow-sm">Reset Password</button>
+                <p class="text-[11px] text-slate-500">आपके ईमेल पर पासवर्ड रीसेट का लिंक भेजा जाएगा।</p>
+                <button type="submit" class="w-full bg-indigo-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-indigo-700 transition shadow-sm">Reset Link भेजें</button>
             </form>
         </div>
 
@@ -267,7 +259,7 @@
                 <div class="flex items-start space-x-2">
                     <i class="fa-solid fa-triangle-exclamation text-amber-600 text-sm mt-0.5"></i>
                     <div>
-                        <p id="rule-text" class="leading-relaxed font-medium">The test will run only on the device from which you are paying for the exam. If you change your device or perform a factory data reset on your device, you may have to purchase the test again.</p>
+                        <p id="rule-text" class="leading-relaxed font-medium">Your purchase is linked to the account (email) you are logged in with while paying. You can log in to this account on any device. One payment unlocks only one account, so please pay while logged in with the account you want to use.</p>
                         <button type="button" onclick="toggleHindiTranslation()" id="hindi-toggle-btn" class="text-[11px] text-indigo-600 font-bold underline mt-1 hover:text-indigo-800">Read in Hindi (हिंदी में पढ़ें)</button>
                     </div>
                 </div>
@@ -309,6 +301,27 @@
         </div>
         <p>© 2026 Amrit Academy | Created by Ayush | All Rights Reserved</p>
     </footer>
+
+    <!-- Firebase Auth -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+        // Firebase Console > Project settings > Your apps (Web) se config yahan paste karein
+        const firebaseConfig = {
+            apiKey: "AIzaSyCYS72sMHW_lkTOLFbrjP6h5hMBH4XaSW0",
+            authDomain: "amrit-acadmy-a29cf.firebaseapp.com",
+            projectId: "amrit-acadmy-a29cf",
+            storageBucket: "amrit-acadmy-a29cf.firebasestorage.app",
+            messagingSenderId: "571893464018",
+            appId: "1:571893464018:web:84be4c5ca08c2d4ad0260b",
+            measurementId: "G-5R9XQPTDGT"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        window.fb = { auth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, updateProfile };
+    </script>
 
     <!-- Script Logic -->
     <script>
@@ -420,48 +433,56 @@
             }
         }
 
-        // ---------- Payment / Unlock (server verified) ----------
-        function getDeviceId() {
-            let id = localStorage.getItem('amrit_device_id');
-            if (!id) {
-                id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
-                    : Date.now().toString(36) + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
-                localStorage.setItem('amrit_device_id', id);
-            }
-            return id;
+        // ---------- Payment / Unlock (server verified, Firebase account se bind) ----------
+        async function getIdToken() {
+            const u = window.fb && fb.auth.currentUser;
+            return u ? await u.getIdToken() : null;
         }
 
         async function claimPayment(payId) {
             try {
+                const idToken = await getIdToken();
+                if (!idToken) return { ok: false, msg: 'पहले लॉगिन करें।' };
                 const r = await fetch('/api/claim', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ paymentId: payId, deviceId: getDeviceId() })
+                    body: JSON.stringify({ paymentId: payId, idToken })
                 });
                 const d = await r.json();
                 if (d.ok) { isUnlocked = true; return { ok: true }; }
                 return { ok: false, msg: d.message || 'Payment verify नहीं हुआ।' };
             } catch (e) {
-                return { ok: false, msg: 'नेटवर्क में समस्या है, दोबारा कोशिश करें।' };
+                return { ok: false, net: true, msg: 'नेटवर्क में समस्या है, दोबारा कोशिश करें।' };
             }
         }
 
         async function syncUnlock() {
+            isUnlocked = false;
             try {
-                const r = await fetch('/api/status?deviceId=' + encodeURIComponent(getDeviceId()));
+                const idToken = await getIdToken();
+                if (!idToken) return;
+                const r = await fetch('/api/status', { headers: { Authorization: 'Bearer ' + idToken } });
                 const d = await r.json();
                 isUnlocked = !!d.unlocked;
             } catch (e) { /* offline: locked ही रहेगा */ }
         }
 
-        async function checkPaymentReturn() {
+        // Razorpay se wapas aane par payment ID save karo (login na ho tab bhi)
+        function checkPaymentReturn() {
             const params = new URLSearchParams(window.location.search);
             const payId = params.get('razorpay_payment_id');
             if (payId && payId.startsWith('pay_')) {
+                localStorage.setItem('amrit_pending_pay', payId);
                 window.history.replaceState({}, document.title, window.location.pathname);
-                const res = await claimPayment(payId);
-                setTimeout(() => alert(res.ok ? "पेमेंट सफल! सभी टेस्ट सेट अनलॉक हो गए हैं।" : res.msg), 300);
             }
+        }
+
+        async function processPendingPayment() {
+            const payId = localStorage.getItem('amrit_pending_pay');
+            if (!payId) return;
+            const res = await claimPayment(payId);
+            if (!res.net) localStorage.removeItem('amrit_pending_pay');
+            setTimeout(() => alert(res.ok ? "पेमेंट सफल! सभी टेस्ट सेट अनलॉक हो गए हैं।" : res.msg), 300);
         }
 
         async function verifyManualPayment() {
@@ -483,15 +504,29 @@
 
         window.onload = async function() {
             await loadQuestionsFromJSON();
-            await checkPaymentReturn();
-            await syncUnlock();
-            activeUsername = localStorage.getItem('amrit_active_user');
-            if (activeUsername) {
-                showHomeView(activeUsername);
-            } else {
-                document.getElementById('auth-view').classList.remove('hidden');
-            }
+            if (!window.fb) { showAlert("Firebase लोड नहीं हुआ। इंटरनेट चेक करके पेज रीफ्रेश करें।"); return; }
+            checkPaymentReturn();
+            fb.onAuthStateChanged(fb.auth, async (user) => {
+                if (user) {
+                    activeUsername = user.displayName || user.email;
+                    await processPendingPayment();
+                    await syncUnlock();
+                    showHomeView(activeUsername);
+                } else {
+                    activeUsername = null;
+                    isUnlocked = false;
+                    showAuthView();
+                }
+            });
         };
+
+        function showAuthView() {
+            if(timerInterval) clearInterval(timerInterval);
+            ['home-view','sets-view','quiz-view','result-view','static-page-view','user-nav-info'].forEach(id => document.getElementById(id).classList.add('hidden'));
+            document.getElementById('auth-view').classList.remove('hidden');
+            document.getElementById('login-form').reset();
+            hideAlert();
+        }
 
         function resetToHome() {
             if (activeUsername) {
@@ -544,55 +579,45 @@
             document.getElementById('auth-alert').classList.add('hidden');
         }
 
-        function handleRegister(e) {
+        async function handleRegister(e) {
             e.preventDefault();
             const name = document.getElementById('reg-name').value.trim();
             const email = document.getElementById('reg-email').value.trim().toLowerCase();
             const password = document.getElementById('reg-password').value;
-
-            let users = JSON.parse(localStorage.getItem('amrit_users')) || [];
-            if (users.find(u => u.email === email)) {
-                showAlert("यह ईमेल आईडी पहले से रजिस्टर्ड है!");
-                return;
+            if (password.length < 6) { showAlert("पासवर्ड कम से कम 6 अक्षर का होना चाहिए।"); return; }
+            try {
+                const cred = await fb.createUserWithEmailAndPassword(fb.auth, email, password);
+                await fb.updateProfile(cred.user, { displayName: name });
+                activeUsername = name;
+                showHomeView(name);
+            } catch (err) {
+                if (err.code === 'auth/email-already-in-use') showAlert("यह ईमेल आईडी पहले से रजिस्टर्ड है!");
+                else if (err.code === 'auth/weak-password') showAlert("पासवर्ड कम से कम 6 अक्षर का होना चाहिए।");
+                else showAlert("रजिस्ट्रेशन में समस्या: " + (err.code || err.message));
             }
-            users.push({ name, email, password });
-            localStorage.setItem('amrit_users', JSON.stringify(users));
-            showAlert("रजिस्ट्रेशन सफल! अब लॉगिन करें।", true);
-            setTimeout(() => switchAuthMode('login'), 1200);
         }
 
-        function handleLogin(e) {
+        async function handleLogin(e) {
             e.preventDefault();
             const email = document.getElementById('login-email').value.trim().toLowerCase();
             const password = document.getElementById('login-password').value;
-
-            let users = JSON.parse(localStorage.getItem('amrit_users')) || [];
-            const user = users.find(u => u.email === email && u.password === password);
-
-            if (user) {
-                activeUsername = user.name;
-                localStorage.setItem('amrit_active_user', user.name);
-                showHomeView(user.name);
-            } else {
-                showAlert("गलत ईमेल आईडी या पासवर्ड!");
+            try {
+                await fb.signInWithEmailAndPassword(fb.auth, email, password);
+            } catch (err) {
+                if (err.code === 'auth/too-many-requests') showAlert("बहुत ज़्यादा कोशिशें हो गईं। कुछ देर बाद दोबारा करें।");
+                else showAlert("गलत ईमेल आईडी या पासवर्ड!");
             }
         }
 
-        function handleForgotPassword(e) {
+        async function handleForgotPassword(e) {
             e.preventDefault();
             const email = document.getElementById('forgot-email').value.trim().toLowerCase();
-            const newPassword = document.getElementById('forgot-password').value;
-
-            let users = JSON.parse(localStorage.getItem('amrit_users')) || [];
-            const userIndex = users.findIndex(u => u.email === email);
-
-            if (userIndex !== -1) {
-                users[userIndex].password = newPassword;
-                localStorage.setItem('amrit_users', JSON.stringify(users));
-                showAlert("पासवर्ड सफलतापूर्वक अपडेट हो गया! अब लॉगिन करें।", true);
-                setTimeout(() => switchAuthMode('login'), 1200);
-            } else {
-                showAlert("यह ईमेल आईडी हमारे रिकॉर्ड में नहीं है!");
+            try {
+                await fb.sendPasswordResetEmail(fb.auth, email);
+                showAlert("रीसेट लिंक आपके ईमेल पर भेज दिया गया है। (Spam फ़ोल्डर भी देखें)", true);
+                setTimeout(() => switchAuthMode('login'), 2500);
+            } catch (err) {
+                showAlert("रीसेट ईमेल नहीं भेजा जा सका। ईमेल जांचें और दोबारा कोशिश करें।");
             }
         }
 
@@ -608,19 +633,9 @@
             document.getElementById('nav-username').innerText = `नमस्ते, ${username}`;
         }
 
-        function logout() {
+        async function logout() {
             if(timerInterval) clearInterval(timerInterval);
-            activeUsername = null;
-            localStorage.removeItem('amrit_active_user');
-            document.getElementById('home-view').classList.add('hidden');
-            document.getElementById('sets-view').classList.add('hidden');
-            document.getElementById('quiz-view').classList.add('hidden');
-            document.getElementById('result-view').classList.add('hidden');
-            document.getElementById('static-page-view').classList.add('hidden');
-            document.getElementById('user-nav-info').classList.add('hidden');
-            document.getElementById('auth-view').classList.remove('hidden');
-            document.getElementById('login-form').reset();
-            hideAlert();
+            try { await fb.signOut(fb.auth); } catch (e) {}
         }
 
         function openCategory(category) {
@@ -651,7 +666,7 @@
         function showPaymentPopup() {
             document.getElementById('rule-checkbox').checked = false;
             isHindiRule = false;
-            document.getElementById('rule-text').innerText = "The test will run only on the device from which you are paying for the exam. If you change your device or perform a factory data reset on your device, you may have to purchase the test again.";
+            document.getElementById('rule-text').innerText = "Your purchase is linked to the account (email) you are logged in with while paying. You can log in to this account on any device. One payment unlocks only one account, so please pay while logged in with the account you want to use.";
             document.getElementById('hindi-toggle-btn').innerText = "Read in Hindi (हिंदी में पढ़ें)";
             togglePaymentButton();
             document.getElementById('payment-modal').classList.remove('hidden');
@@ -662,10 +677,10 @@
             const ruleTextEl = document.getElementById('rule-text');
             const toggleBtnEl = document.getElementById('hindi-toggle-btn');
             if (isHindiRule) {
-                ruleTextEl.innerText = "परीक्षा केवल उसी डिवाइस पर चलेगी जिस डिवाइस से आप इसके लिए भुगतान (पेमेंट) कर रहे हैं। यदि आप अपना डिवाइस बदलते हैं या अपने डिवाइस पर फ़ैक्टरी डेटा रीसेट (factory data reset) करते हैं, तो आपको टेस्ट दोबारा खरीदना पड़ सकता है।";
+                ruleTextEl.innerText = "आपका भुगतान उसी अकाउंट (ईमेल) से जुड़ जाएगा जिससे आप लॉगिन रहकर पेमेंट करते हैं। आप इस अकाउंट में किसी भी डिवाइस से लॉगिन कर सकते हैं। एक पेमेंट केवल एक अकाउंट को अनलॉक करता है, इसलिए उसी अकाउंट से पेमेंट करें जिसे आप इस्तेमाल करना चाहते हैं।";
                 toggleBtnEl.innerText = "Read in English (अंग्रेजी में पढ़ें)";
             } else {
-                ruleTextEl.innerText = "The test will run only on the device from which you are paying for the exam. If you change your device or perform a factory data reset on your device, you may have to purchase the test again.";
+                ruleTextEl.innerText = "Your purchase is linked to the account (email) you are logged in with while paying. You can log in to this account on any device. One payment unlocks only one account, so please pay while logged in with the account you want to use.";
                 toggleBtnEl.innerText = "Read in Hindi (हिंदी में पढ़ें)";
             }
         }
@@ -870,7 +885,7 @@
                 titleEl.innerText = "Terms & Conditions";
                 contentEl.innerHTML = `
                     <p><strong>1. Introduction:</strong> Welcome to Amrit Academy. By accessing our online test series portal, you agree to comply with and be bound by the following terms and conditions.</p>
-                    <p><strong>2. Single Device Policy:</strong> Each test subscription and login is strictly mapped to a single device. Sharing login credentials or attempting to access tests across multiple unauthorized devices may result in permanent account suspension without refund.</p>
+                    <p><strong>2. Single Device Policy:</strong> Each test subscription is strictly mapped to a single account. Sharing login credentials with others may result in permanent account suspension without refund.</p>
                     <p><strong>3. Intellectual Property:</strong> All test papers, questions, answers, graphics, and portal designs created by Ayush for Amrit Academy are protected under copyright laws. Unauthorized duplication or distribution is strictly prohibited.</p>
                     <p><strong>4. User Conduct:</strong> Users must maintain academic integrity while participating in mock tests and refrain from employing automated scripts or bots.</p>
                 `;
@@ -879,7 +894,7 @@
                 contentEl.innerHTML = `
                     <p><strong>1. Information Collection:</strong> We collect basic registration details such as your name, email address, and secure password storage to personalize your test-taking experience.</p>
                     <p><strong>2. Data Usage:</strong> Your performance analytics, test scores, and history are stored securely via browser local storage and cloud database rules to track your competitive exam preparation progress.</p>
-                    <p><strong>3. Device Binding & Reset Policy:</strong> परीक्षा केवल उसी डिवाइस पर चलेगी जिस डिवाइस से आप इसके लिए भुगतान (पेमेंट) कर रहे हैं। यदि आप अपना डिवाइस बदलते हैं या अपने डिवाइस पर फ़ैक्टरी डेटा रीसेट (factory data reset) करते हैं, तो आपको टेस्ट दोबारा खरीदना पड़ सकता है। The test will run only on the device from which you pay. If you change your device or perform a factory data reset, access might be revoked and you may have to repurchase the test series.</p>
+                    <p><strong>3. Account Binding Policy:</strong> आपका भुगतान उसी अकाउंट (ईमेल) से जुड़ जाएगा जिससे आप लॉगिन रहकर पेमेंट करते हैं। आप इस अकाउंट में किसी भी डिवाइस से लॉगिन कर सकते हैं। एक पेमेंट केवल एक अकाउंट को अनलॉक करता है, इसलिए उसी अकाउंट से पेमेंट करें जिसे आप इस्तेमाल करना चाहते हैं। Your purchase is linked to one account and works on any device where you log in with that account.</p>
                     <p><strong>4. Cookie Policy:</strong> We use essential cookies to maintain active login sessions and language preferences.</p>
                     <p><strong>5. Third-Party Sharing:</strong> Amrit Academy does not sell, trade, or transfer your personal identification information to outside parties.</p>
                 `;

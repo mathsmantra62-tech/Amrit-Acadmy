@@ -1,0 +1,12 @@
+{
+  "name": "amrit-academy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Amrit Academy - Online Test Series (Bihar Police & SI)",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@upstash/redis": "^1.34.0"
+  }
+}
