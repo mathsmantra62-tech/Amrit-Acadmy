@@ -149,7 +149,7 @@
                         <span class="text-xs font-medium text-purple-600 bg-purple-50 px-2.5 py-1 rounded-full">25 Sets</span>
                     </div>
                     <h3 class="font-bold text-lg text-slate-900">बिहार दरोगा (SI)</h3>
-                    <p class="text-xs text-slate-500 mt-1">25 टेस्ट सेट (2,500 से 5,000 प्रश्न)</p>
+                    <p class="text-xs text-slate-500 mt-1">25 टेस्ट सेट (2,501 से 5,000 प्रश्न)</p>
                 </button>
 
                 <button onclick="openCategory('reasoning')" class="p-5 bg-white/90 backdrop-blur border border-indigo-100 rounded-xl shadow-md hover:border-indigo-500 hover:bg-white transition text-left group">
@@ -338,7 +338,7 @@
         let activeUsername = null;
         let timerInterval = null;
         let timeLeft = 3600; 
-        let isUnlocked = false; 
+        let isUnlocked = false; // server (/api/status) decide karta hai
         let isHindiRule = false;
 
         let questionBank = {
@@ -369,44 +369,25 @@
             return sets;
         }
 
-        // हमेशा निश्चित 25 सेट बनाएगा और हर सेट में ठीक 100 सवाल रखेगा
-        function createCategorySets(questionList, categoryName, defaultStartId, totalSetsCount = 25, questionsPerSet = 100) {
+        function createCategorySets(questionList, categoryName, defaultStartId) {
             const sets = [];
-            for (let s = 0; s < totalSetsCount; s++) {
-                const chunk = [];
-                const startIdx = s * questionsPerSet;
-
-                for (let q = 0; q < questionsPerSet; q++) {
-                    const item = questionList[startIdx + q];
-                    const currentId = defaultStartId + (s * questionsPerSet) + q;
-
-                    if (item) {
-                        let ansIndex = 0;
-                        if (Array.isArray(item.options)) {
-                            ansIndex = item.options.findIndex(opt => String(opt).trim() === String(item.answer).trim());
-                            if (ansIndex === -1) ansIndex = typeof item.answer === 'number' ? item.answer : 0;
-                        }
-                        chunk.push({
-                            id: item.id || currentId,
-                            q: item.question || item.q || `${categoryName} महत्वपूर्ण अभ्यास प्रश्न संख्या ${currentId}`,
-                            options: Array.isArray(item.options) && item.options.length ? item.options : ["विकल्प A", "विकल्प B", "विकल्प C", "विकल्प D"],
-                            answer: ansIndex
-                        });
-                    } else {
-                        // अगर JSON में उस सेट में 100 सवाल पूरे न हों तो स्वतः भर देगा
-                        chunk.push({
-                            id: currentId,
-                            q: `${categoryName} महत्वपूर्ण अभ्यास प्रश्न संख्या ${currentId}?`,
-                            options: ["विकल्प A", "विकल्प B", "विकल्प C", "विकल्प D"],
-                            answer: 0
-                        });
-                    }
-                }
+            for (let start = 0; start < questionList.length; start += 100) {
+                const chunk = questionList.slice(start, start + 100).map((item, k) => {
+                    let ansIndex = item.options.findIndex(opt => String(opt).trim() === String(item.answer).trim());
+                    if (ansIndex === -1) ansIndex = 0;
+                    return {
+                        id: item.id || (defaultStartId + start + k),
+                        q: item.question || item.q,
+                        options: item.options,
+                        answer: ansIndex
+                    };
+                });
                 sets.push(chunk);
             }
             return sets;
         }
 
+        // JSON ke key ka naam kisi bhi tarah (capital/small/space) likha ho, mil jaayega
         function pickKey(data, names) {
             const norm = t => String(t).toLowerCase().replace(/\s+/g, '');
             const keys = Object.keys(data);
@@ -429,53 +410,22 @@
                 if (!response.ok) throw new Error("question.json नहीं मिली (HTTP " + response.status + ")");
                 const data = await response.json();
 
-                let rawList = Array.isArray(data) ? data : [];
+                questionBank.police = createCategorySets(pickKey(data, ['biharpolice', 'police']), "बिहार पुलिस", 1);
+                questionBank.daroga = createCategorySets(pickKey(data, ['bihardaroga', 'daroga']), "बिहार दरोगा", 2501);
+                questionBank.reasoning = createCategorySets(pickKey(data, ['reasoning']), "तार्किक योग्यता", 5001);
+                questionBank.math = createCategorySets(pickKey(data, ['maths', 'math']), "गणित", 7501);
 
-                // बिहार पुलिस
-                let policeList = pickKey(data, ['biharpolice', 'police']);
-                if (!policeList.length && rawList.length) {
-                    policeList = rawList.filter(item => item.id >= 1 && item.id < 2500);
-                }
-
-                // बिहार दरोगा (2500 से 5000 प्रश्न)
-                let darogaList = pickKey(data, ['bihardaroga', 'daroga']);
-                if (!darogaList.length && rawList.length) {
-                    darogaList = rawList.filter(item => item.id >= 2500 && item.id <= 5000);
-                } else if (darogaList.length && darogaList.some(item => item.id)) {
-                    const filtered = darogaList.filter(item => item.id >= 2500 && item.id <= 5000);
-                    if (filtered.length) darogaList = filtered;
-                }
-
-                // रीजनिंग
-                let reasoningList = pickKey(data, ['reasoning']);
-                if (!reasoningList.length && rawList.length) {
-                    reasoningList = rawList.filter(item => item.id > 5000 && item.id <= 7500);
-                }
-
-                // गणित
-                let mathList = pickKey(data, ['maths', 'math']);
-                if (!mathList.length && rawList.length) {
-                    mathList = rawList.filter(item => item.id > 7500 && item.id <= 10000);
-                }
-
-                // चारों विषयों में अनिवार्य रूप से पूरे 25 सेट और हर सेट में 100 प्रश्न
-                questionBank.police = createCategorySets(policeList, "बिहार पुलिस", 1, 25, 100);
-                questionBank.daroga = createCategorySets(darogaList, "बिहार दरोगा", 2500, 25, 100);
-                questionBank.reasoning = createCategorySets(reasoningList, "तार्किक योग्यता", 5001, 25, 100);
-                questionBank.math = createCategorySets(mathList, "गणित", 7501, 25, 100);
-
-                console.log("बिहार दरोगा कुल सेट:", questionBank.daroga.length);
+                const total = Object.values(questionBank).reduce((a, sets) => a + sets.reduce((b, st) => b + st.length, 0), 0);
+                if (total === 0) throw new Error("question.json में कोई प्रश्न नहीं मिला");
+                console.log("प्रश्न लोड हुए:", total);
             } catch (error) {
                 console.error(error);
-                questionBank.police = generateCategoryQuestions(1, 2500, "बिहार पुलिस");
-                questionBank.daroga = generateCategoryQuestions(2500, 5000, "बिहार दरोगा");
-                questionBank.reasoning = generateCategoryQuestions(5001, 7500, "तार्किक योग्यता");
-                questionBank.math = generateCategoryQuestions(7501, 10000, "गणित");
-                showLoadError("question.json लोड नहीं हो पाई: " + error.message);
+                questionBank = { police: [], daroga: [], reasoning: [], math: [] };
+                showLoadError("प्रश्न लोड नहीं हो पाए: " + error.message + ". पेज रीफ्रेश करें या सपोर्ट से संपर्क करें।");
             }
         }
 
-        // ---------- Payment / Unlock ----------
+        // ---------- Payment / Unlock (server verified, Firebase account se bind) ----------
         async function getIdToken() {
             const u = window.fb && fb.auth.currentUser;
             return u ? await u.getIdToken() : null;
@@ -506,9 +456,10 @@
                 const r = await fetch('/api/status', { headers: { Authorization: 'Bearer ' + idToken } });
                 const d = await r.json();
                 isUnlocked = !!d.unlocked;
-            } catch (e) { }
+            } catch (e) { /* offline: locked ही रहेगा */ }
         }
 
+        // Razorpay se wapas aane par payment ID save karo (login na ho tab bhi)
         function checkPaymentReturn() {
             const params = new URLSearchParams(window.location.search);
             const payId = params.get('razorpay_payment_id');
@@ -737,7 +688,7 @@
             const isChecked = document.getElementById('rule-checkbox').checked;
             const btn = document.getElementById('razorpay-btn');
             if (isChecked) {
-                btn.href = "https://rzp.io/rzp/H4ajH47";
+                btn.href = "https://rzp.io/rzp/B1zOp0Bd";
                 btn.target = "_blank";
                 btn.className = "block w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl text-sm transition shadow-lg cursor-pointer";
                 btn.innerHTML = '<i class="fa-solid fa-lock-open mr-1"></i> Pay ₹99 via Razorpay & Unlock';
